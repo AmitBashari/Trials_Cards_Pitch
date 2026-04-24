@@ -1,10 +1,9 @@
-html
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Snappy Layout UI</title>
+    <title>Snappy Layout UI - With Reset</title>
     <style>
         :root {
             /* Palette */
@@ -40,9 +39,29 @@ html
             text-align: center;
             z-index: 20;
             font-weight: 300;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
         }
 
         input[type="range"] { width: 250px; accent-color: #3aa3ff; cursor: pointer; }
+
+        /* --- Debug Button --- */
+        .reset-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 6px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 13px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+        .reset-btn:hover { background: rgba(255, 255, 255, 0.2); }
+        .reset-btn:active { transform: scale(0.95); }
 
         /* --- List Container --- */
         .card-list {
@@ -109,7 +128,6 @@ html
         .header-box { display: flex; align-items: center; gap: 10px; }
         .title { font-weight: 900; color: #362414; font-size: 19px; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         
-        /* Forces the 2/5 to stay on one line natively */
         .progress-text { font-size: 13px; font-weight: 800; color: #4a341e; background: rgba(255,255,255,0.6); padding: 2px 8px; border-radius: 6px; white-space: nowrap; flex-shrink: 0; }
         
         .desc { font-weight: 600; color: #785a3c; font-size: 14px; margin: 0; line-height: 1.3; }
@@ -117,41 +135,33 @@ html
         .reward-tag { display: flex; align-items: center; gap: 4px; background: linear-gradient(to bottom, #fff, #ebebeb); padding: 3px 8px 3px 4px; border-radius: 8px; border: 1px solid #c2a784; box-shadow: 0 3px 6px rgba(0,0,0,0.1); }
         .reward-val { font-weight: 800; font-size: 13px; color: #362414; }
 
-        /* Button Base */
         .btn { position: relative; width: 90px; padding: 10px 0; border: none; border-radius: 10px; color: #fff; font-weight: 900; font-size: 16px; background: var(--btn-blue); box-shadow: inset 0 2px 0 rgba(255,255,255,0.4), 0 5px 0 #004dbe, 0 8px 10px rgba(0,0,0,0.3); cursor: pointer; overflow: hidden; transition: all 0.2s ease; }
 
-        /* --- Static Cards styling overrides --- */
         .static-card .btn { filter: grayscale(1); opacity: 0.5; pointer-events: none; }
         .static-card .progress-fill { display: none; }
 
-        /* --- Interactive Bottom Card Specifics --- */
         .interactive-card .progress-fill { position: absolute; top: 0; left: 0; bottom: 0; width: 40%; background: linear-gradient(90deg, rgba(20,180,255,0.2) 0%, rgba(20,180,255,0.5) 50%, rgba(20,180,255,0.2) 100%); background-size: 200% 100%; z-index: 1; transition: width 0.3s cubic-bezier(0.2, 0.8, 0.2, 1); border-right: 2px solid rgba(255,255,255,0.6); }
         
         /* =========================================
            RESTORED CSS MAGIC (THE COMPLETED STATE)
            ========================================= */
 
-        /* 1. Recoil Anticipation */
         .interactive-wrapper.is-completed { animation: cardRecoil 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
         @keyframes cardRecoil { 0% { transform: scale(1); } 20% { transform: scale(0.96); } 45% { transform: scale(1.02); } 100% { transform: scale(1); } }
 
-        /* 2. Soft Ambient Pulse behind the card */
         .interactive-wrapper::before { content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0; border-radius: 18px; background: radial-gradient(circle, rgba(136, 255, 156, 0.5) 0%, transparent 60%); opacity: 0; z-index: -1; pointer-events: none; box-shadow: 0 0 40px 10px rgba(57, 255, 98, 0.2); }
         .interactive-wrapper.is-completed::before { animation: softPulse 0.6s cubic-bezier(0.1, 0.9, 0.3, 1) forwards; }
         @keyframes softPulse { 0% { opacity: 0; transform: scale(0.95); } 40% { opacity: 1; transform: scale(1.05); } 100% { opacity: 0; transform: scale(1.15); } }
 
-        /* 3. The Left-to-Right Energy Wave Sweep */
         .interactive-card::after { content: ''; position: absolute; top: 0; left: 0; bottom: 0; width: 0%; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.8), rgba(57, 255, 98, 0.9), transparent); mix-blend-mode: color-dodge; opacity: 0; z-index: 7; pointer-events: none; }
         .interactive-card.is-completed::after { animation: waveSweep 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
         @keyframes waveSweep { 0% { width: 100%; opacity: 0; left: -100%; } 50% { width: 100%; opacity: 1; left: 0%; } 100% { width: 100%; opacity: 0; left: 100%; } }
 
-        /* 4. Background Color & Text Shifts */
         .interactive-card.is-completed { background-color: var(--success-bg); border-color: var(--success-border); box-shadow: inset 0 4px 6px rgba(255,255,255,0.7), inset 0 -4px 8px rgba(0,0,0,0.1), 0 0 20px rgba(64, 211, 92, 0.3); transition: all 0.2s ease-out; }
         .interactive-card.is-completed .title { color: #0b4a1a; transition: 0.2s; }
         .interactive-card.is-completed .desc { color: #166e2a; transition: 0.2s; }
         .interactive-card.is-completed .progress-fill { opacity: 0; transition: opacity 0.1s; }
 
-        /* 5. Button Snap, Thump, and Gloss Sweep */
         .btn.is-active { background: var(--btn-green); box-shadow: inset 0 2px 0 rgba(255,255,255,0.5), 0 5px 0 #09751a, 0 0 20px rgba(57, 255, 98, 0.5); animation: buttonThump 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards, breatheBtn 2s infinite alternate 0.5s; }
         @keyframes buttonThump { 0% { transform: scale(1); } 50% { transform: scale(1.1); filter: brightness(1.3); } 100% { transform: scale(1); filter: brightness(1); } }
         
@@ -165,8 +175,9 @@ html
 <body>
 
     <div class="controls">
-        <p style="margin:0 0 10px 0;">1. Slide to Complete &nbsp;&nbsp;&nbsp; 2. Tap CLAIM</p>
+        <p style="margin:0;">1. Slide to Complete &nbsp;&nbsp;&nbsp; 2. Tap CLAIM</p>
         <input type="range" id="slider" min="0" max="5" value="2" step="1">
+        <button id="resetBtn" class="reset-btn">↺ Reset Demo</button>
     </div>
 
     <div class="card-list" id="cardList">
@@ -240,16 +251,43 @@ html
 
     <script>
         const slider = document.getElementById('slider');
-        const targetWrapper = document.getElementById('targetWrapper');
-        const targetCard = document.getElementById('targetCard');
-        const fill = document.getElementById('fill');
-        const progText = document.getElementById('progText');
-        const actionBtn = document.getElementById('actionBtn');
+        const resetBtn = document.getElementById('resetBtn');
         const cardList = document.getElementById('cardList');
         
+        // Save the pristine initial HTML state of the list
+        const initialListHTML = cardList.innerHTML;
         const MAX = 5;
+
+        // State variables
         let isDone = false;
         let isClaimed = false;
+        let targetWrapper, targetCard, fill, progText, actionBtn;
+
+        // Function to hook up JS logic to the DOM elements
+        function bindInteractiveElements() {
+            targetWrapper = document.getElementById('targetWrapper');
+            targetCard = document.getElementById('targetCard');
+            fill = document.getElementById('fill');
+            progText = document.getElementById('progText');
+            actionBtn = document.getElementById('actionBtn');
+
+            // --- THE SNAPPY VANISH & DROP EVENT ---
+            actionBtn.addEventListener('click', () => {
+                if (!isDone || isClaimed) return;
+                isClaimed = true;
+
+                // 1. Instantly trigger the scale-down fade out
+                targetWrapper.classList.add('is-vanishing');
+
+                // 2. Trigger the layout shift (New card slides in, pushing rest down)
+                shiftLayoutAndSpawnNew();
+                
+                // 3. Clean up the DOM after the 0.3s CSS transition completes
+                setTimeout(() => {
+                    if(targetWrapper.parentNode) targetWrapper.remove();
+                }, 300);
+            });
+        }
 
         // --- SLIDER LOGIC ---
         slider.addEventListener('input', (e) => {
@@ -262,7 +300,6 @@ html
 
             if (val === MAX && !isDone) {
                 isDone = true;
-                // Re-trigger CSS animations cleanly if scrubbed back and forth
                 targetWrapper.classList.remove('is-completed');
                 targetCard.classList.remove('is-completed');
                 actionBtn.classList.remove('is-active');
@@ -283,25 +320,8 @@ html
             }
         });
 
-        // --- THE SNAPPY VANISH & DROP EVENT ---
-        actionBtn.addEventListener('click', () => {
-            if (!isDone || isClaimed) return;
-            isClaimed = true;
-
-            // 1. Instantly trigger the scale-down fade out
-            targetWrapper.classList.add('is-vanishing');
-
-            // 2. Trigger the layout shift (New card slides in, pushing rest down)
-            shiftLayoutAndSpawnNew();
-            
-            // 3. Clean up the DOM after the 0.3s CSS transition completes
-            setTimeout(() => {
-                targetWrapper.remove();
-            }, 300);
-        });
-
+        // --- SPAWN NEW CARD ---
         function shiftLayoutAndSpawnNew() {
-            // Prepend a new card with height 0
             const newCardHTML = `
                 <div class="card-wrapper static-wrapper is-entering" id="newCard">
                     <div class="trial-card static-card">
@@ -323,17 +343,36 @@ html
             cardList.insertAdjacentHTML('afterbegin', newCardHTML);
             const newCard = document.getElementById('newCard');
 
-            // Force reflow, then remove .is-entering so it transitions to full height natively
             requestAnimationFrame(() => {
                 requestAnimationFrame(() => {
                     newCard.classList.remove('is-entering');
                 });
             });
             
-            // Lock the slider 
             slider.value = 0;
             slider.disabled = true;
         }
+
+        // --- DEBUG RESET ---
+        resetBtn.addEventListener('click', () => {
+            // Restore HTML
+            cardList.innerHTML = initialListHTML;
+            
+            // Reset state
+            isDone = false;
+            isClaimed = false;
+            slider.disabled = false;
+            slider.value = 2; // Matches our initial 40% fill
+            
+            // Re-bind click listeners to the fresh HTML
+            bindInteractiveElements();
+            
+            // Trigger a fake slider event to reset the visual width & text natively
+            slider.dispatchEvent(new Event('input'));
+        });
+
+        // Initial setup on page load
+        bindInteractiveElements();
 
     </script>
 </body>
