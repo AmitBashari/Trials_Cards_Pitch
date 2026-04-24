@@ -3,18 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Snappy Layout UI - With Reset</title>
+    <title>Snappy Layout UI - Debug Switch</title>
     <style>
         :root {
             /* Palette */
             --bg-base: #e8dbb7;
             --border-base: #a68a5c;
             --fill-energy: rgba(20, 180, 255, 0.4);
-            
+
             --success-glow: rgba(57, 255, 98, 0.4);
             --success-bg: #40d35c;
             --success-border: #8cff9c;
-            
+
             --btn-blue: linear-gradient(180deg, #3aa3ff 0%, #006aff 100%);
             --btn-green: linear-gradient(180deg, #5eff79 0%, #0eb82d 100%);
         }
@@ -45,10 +45,16 @@
             gap: 12px;
         }
 
-        input[type="range"] { width: 250px; accent-color: #3aa3ff; cursor: pointer; }
+        input[type="range"] { width: 250px; cursor: pointer; }
+        /* Slider accent colour follows active style */
+        body[data-style="A"] input[type="range"] { accent-color: #3aa3ff; }
+        body[data-style="B"] input[type="range"] { accent-color: #00d2ff; }
 
-        /* --- Debug Button --- */
-        .reset-btn {
+        /* --- Debug Buttons --- */
+        .btn-row { display: flex; gap: 10px; align-items: center; }
+
+        .reset-btn,
+        .debug-switch {
             background: rgba(255, 255, 255, 0.1);
             border: 1px solid rgba(255, 255, 255, 0.3);
             color: white;
@@ -60,8 +66,23 @@
             font-weight: 600;
             transition: all 0.2s ease;
         }
-        .reset-btn:hover { background: rgba(255, 255, 255, 0.2); }
-        .reset-btn:active { transform: scale(0.95); }
+        .reset-btn:hover,
+        .debug-switch:hover { background: rgba(255, 255, 255, 0.2); }
+        .reset-btn:active,
+        .debug-switch:active { transform: scale(0.95); }
+
+        .debug-switch {
+            background: rgba(255, 200, 60, 0.15);
+            border-color: rgba(255, 200, 60, 0.5);
+        }
+        .debug-switch:hover { background: rgba(255, 200, 60, 0.25); }
+
+        .style-label {
+            font-size: 11px;
+            color: rgba(255,255,255,0.5);
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
 
         /* --- List Container --- */
         .card-list {
@@ -76,30 +97,28 @@
         .card-wrapper {
             position: relative;
             transform: scale(1);
-            height: 104px; 
+            height: 104px;
             opacity: 1;
             /* Snappy bezier curve for the layout drop */
-            transition: height 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
-                        opacity 0.2s ease-out, 
+            transition: height 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                        opacity 0.2s ease-out,
                         margin-bottom 0.3s cubic-bezier(0.4, 0, 0.2, 1),
                         transform 0.2s ease-out;
             will-change: height, margin-bottom, opacity, transform;
         }
 
-        /* State for newly added cards sliding in at the top */
-        .card-wrapper.is-entering { 
-            height: 0px; 
-            opacity: 0; 
-            margin-bottom: -16px; 
-            transform: translateY(-10px); 
+        .card-wrapper.is-entering {
+            height: 0px;
+            opacity: 0;
+            margin-bottom: -16px;
+            transform: translateY(-10px);
         }
 
-        /* State for the claimed card vanishing */
         .card-wrapper.is-vanishing {
             height: 0px;
             opacity: 0;
             margin-bottom: -16px;
-            transform: scale(0.9); /* Quick shrink as it fades */
+            transform: scale(0.9);
             pointer-events: none;
         }
 
@@ -127,25 +146,79 @@
         .info-col { flex-grow: 1; display: flex; flex-direction: column; gap: 4px; overflow: hidden; }
         .header-box { display: flex; align-items: center; gap: 10px; }
         .title { font-weight: 900; color: #362414; font-size: 19px; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        
-        .progress-text { font-size: 13px; font-weight: 800; color: #4a341e; background: rgba(255,255,255,0.6); padding: 2px 8px; border-radius: 6px; white-space: nowrap; flex-shrink: 0; }
-        
-        .desc { font-weight: 600; color: #785a3c; font-size: 14px; margin: 0; line-height: 1.3; }
-        .action-col { flex-shrink: 0; display: flex; flex-direction: column; align-items: center; gap: 8px; }
-        .reward-tag { display: flex; align-items: center; gap: 4px; background: linear-gradient(to bottom, #fff, #ebebeb); padding: 3px 8px 3px 4px; border-radius: 8px; border: 1px solid #c2a784; box-shadow: 0 3px 6px rgba(0,0,0,0.1); }
-        .reward-val { font-weight: 800; font-size: 13px; color: #362414; }
 
-        .btn { position: relative; width: 90px; padding: 10px 0; border: none; border-radius: 10px; color: #fff; font-weight: 900; font-size: 16px; background: var(--btn-blue); box-shadow: inset 0 2px 0 rgba(255,255,255,0.4), 0 5px 0 #004dbe, 0 8px 10px rgba(0,0,0,0.3); cursor: pointer; overflow: hidden; transition: all 0.2s ease; }
+        .progress-text { font-size: 13px; font-weight: 800; color: #4a341e; background: rgba(255,255,255,0.6); padding: 2px 8px; border-radius: 6px; white-space: nowrap; flex-shrink: 0; }
+
+        .desc { font-weight: 600; color: #785a3c; font-size: 14px; margin: 0; line-height: 1.3; }
+
+        /* === STYLE A: single reward tag layout === */
+        body[data-style="A"] .action-col { flex-shrink: 0; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+        body[data-style="A"] .reward-tag { display: inline-flex; align-items: center; gap: 4px; background: linear-gradient(to bottom, #fff, #ebebeb); padding: 3px 8px 3px 4px; border-radius: 8px; border: 1px solid #c2a784; box-shadow: 0 3px 6px rgba(0,0,0,0.1); flex-shrink: 0; white-space: nowrap; }
+        body[data-style="A"] .reward-val { font-weight: 800; font-size: 13px; color: #362414; white-space: nowrap; }
+
+        /* === STYLE B: uses Style A's boxed reward tag, but kept stackable for multi-rewards === */
+        body[data-style="B"] .action-col { flex-shrink: 0; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+        body[data-style="B"] .reward-stack { display: flex; flex-direction: column; gap: 4px; align-items: center; }
+        body[data-style="B"] .reward-tag { display: inline-flex; align-items: center; gap: 4px; background: linear-gradient(to bottom, #fff, #ebebeb); padding: 3px 8px 3px 4px; border-radius: 8px; border: 1px solid #c2a784; box-shadow: 0 3px 6px rgba(0,0,0,0.1); flex-shrink: 0; white-space: nowrap; }
+        body[data-style="B"] .reward-val { font-weight: 800; font-size: 13px; color: #362414; white-space: nowrap; }
+
+        /* === Button widths slightly differ between the two designs === */
+        body[data-style="A"] .btn { width: 90px; }
+        body[data-style="B"] .btn { width: 85px; }
+
+        .btn { position: relative; padding: 10px 0; border: none; border-radius: 10px; color: #fff; font-weight: 900; font-size: 16px; background: var(--btn-blue); box-shadow: inset 0 2px 0 rgba(255,255,255,0.4), 0 5px 0 #004dbe, 0 8px 10px rgba(0,0,0,0.3); cursor: pointer; overflow: hidden; transition: all 0.2s ease; }
 
         .static-card .btn { filter: grayscale(1); opacity: 0.5; pointer-events: none; }
-        .static-card .progress-fill { display: none; }
+        .static-card .progress-fill,
+        .static-card .progress-track { display: none; }
 
-        .interactive-card .progress-fill { position: absolute; top: 0; left: 0; bottom: 0; width: 40%; background: linear-gradient(90deg, rgba(20,180,255,0.2) 0%, rgba(20,180,255,0.5) 50%, rgba(20,180,255,0.2) 100%); background-size: 200% 100%; z-index: 1; transition: width 0.3s cubic-bezier(0.2, 0.8, 0.2, 1); border-right: 2px solid rgba(255,255,255,0.6); }
-        
         /* =========================================
-           RESTORED CSS MAGIC (THE COMPLETED STATE)
+           STYLE A — WIDE ENERGY FILL ACROSS CARD
            ========================================= */
+        body[data-style="A"] .interactive-card .progress-fill {
+            position: absolute;
+            top: 0; left: 0; bottom: 0;
+            width: 40%;
+            height: auto;
+            background: linear-gradient(90deg, rgba(20,180,255,0.2) 0%, rgba(20,180,255,0.5) 50%, rgba(20,180,255,0.2) 100%);
+            background-size: 200% 100%;
+            z-index: 1;
+            transition: width 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+            border-right: 2px solid rgba(255,255,255,0.6);
+            border-radius: 0;
+            box-shadow: none;
+        }
+        /* Style A has no separate track */
+        body[data-style="A"] .progress-track { display: none; }
 
+        /* =========================================
+           STYLE B — THIN MICRO-BAR AT BOTTOM
+           ========================================= */
+        body[data-style="B"] .progress-track {
+            position: absolute;
+            bottom: 0; left: 0; right: 0;
+            height: 6px;
+            background: rgba(0,0,0,0.15);
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.25);
+            z-index: 1;
+            display: block;
+        }
+        body[data-style="B"] .interactive-card .progress-fill {
+            position: absolute;
+            bottom: 0; left: 0; top: auto;
+            height: 6px;
+            width: 40%;
+            background: linear-gradient(90deg, #00c6ff, #0072ff);
+            box-shadow: 0 -2px 8px rgba(0, 198, 255, 0.7), inset 0 2px 2px rgba(255,255,255,0.4);
+            z-index: 2;
+            transition: width 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+            border-radius: 0 4px 4px 0;
+            border-right: none;
+        }
+
+        /* =========================================
+           COMPLETED STATE (SHARED)
+           ========================================= */
         .interactive-wrapper.is-completed { animation: cardRecoil 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
         @keyframes cardRecoil { 0% { transform: scale(1); } 20% { transform: scale(0.96); } 45% { transform: scale(1.02); } 100% { transform: scale(1); } }
 
@@ -160,11 +233,12 @@
         .interactive-card.is-completed { background-color: var(--success-bg); border-color: var(--success-border); box-shadow: inset 0 4px 6px rgba(255,255,255,0.7), inset 0 -4px 8px rgba(0,0,0,0.1), 0 0 20px rgba(64, 211, 92, 0.3); transition: all 0.2s ease-out; }
         .interactive-card.is-completed .title { color: #0b4a1a; transition: 0.2s; }
         .interactive-card.is-completed .desc { color: #166e2a; transition: 0.2s; }
-        .interactive-card.is-completed .progress-fill { opacity: 0; transition: opacity 0.1s; }
+        .interactive-card.is-completed .progress-fill,
+        .interactive-card.is-completed .progress-track { opacity: 0; transition: opacity 0.1s; }
 
         .btn.is-active { background: var(--btn-green); box-shadow: inset 0 2px 0 rgba(255,255,255,0.5), 0 5px 0 #09751a, 0 0 20px rgba(57, 255, 98, 0.5); animation: buttonThump 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards, breatheBtn 2s infinite alternate 0.5s; }
         @keyframes buttonThump { 0% { transform: scale(1); } 50% { transform: scale(1.1); filter: brightness(1.3); } 100% { transform: scale(1); filter: brightness(1); } }
-        
+
         .btn::after { content: ''; position: absolute; top: 0; left: -100%; width: 50%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent); transform: skewX(-20deg); }
         .btn.is-active::after { animation: glossSweep 0.5s ease-in-out forwards; }
         @keyframes glossSweep { 0% { left: -100%; } 100% { left: 200%; } }
@@ -172,16 +246,24 @@
 
     </style>
 </head>
-<body>
+<body data-style="A">
 
     <div class="controls">
         <p style="margin:0;">1. Slide to Complete &nbsp;&nbsp;&nbsp; 2. Tap CLAIM</p>
         <input type="range" id="slider" min="0" max="5" value="2" step="1">
-        <button id="resetBtn" class="reset-btn">↺ Reset Demo</button>
+        <div class="btn-row">
+            <button id="resetBtn" class="reset-btn">↺ Reset Demo</button>
+            <button id="debugSwitch" class="debug-switch">🔀 Style: <span id="styleLabel">A</span></button>
+        </div>
+        <span class="style-label" id="styleDesc">A — Wide energy fill</span>
     </div>
 
-    <div class="card-list" id="cardList">
-        
+    <div class="card-list" id="cardList"></div>
+
+    <!-- =============================================
+         TEMPLATE A: Wide energy fill, single reward
+         ============================================= -->
+    <template id="templateA">
         <div class="card-wrapper static-wrapper">
             <div class="trial-card static-card">
                 <div class="ui-layer">
@@ -246,24 +328,126 @@
                 </div>
             </div>
         </div>
+    </template>
 
-    </div>
+    <!-- =============================================
+         TEMPLATE B: Micro-bar, multi-reward stack
+         ============================================= -->
+    <template id="templateB">
+        <div class="card-wrapper static-wrapper">
+            <div class="trial-card static-card">
+                <div class="ui-layer">
+                    <div class="icon-box">🛡️</div>
+                    <div class="info-col">
+                        <div class="header-box"><p class="title">Explore Ruins</p><span class="progress-text">0 / 3</span></div>
+                        <p class="desc">Clear 3 stages in the<br>Ancient Ruins.</p>
+                    </div>
+                    <div class="action-col">
+                        <div class="reward-tag"><span>💎</span><span class="reward-val">100</span></div>
+                        <button class="btn">GO</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card-wrapper static-wrapper">
+            <div class="trial-card static-card">
+                <div class="ui-layer">
+                    <div class="icon-box">🧙‍♂️</div>
+                    <div class="info-col">
+                        <div class="header-box"><p class="title">Summon Heroes</p><span class="progress-text">0 / 10</span></div>
+                        <p class="desc">Summon heroes from<br>the Tavern.</p>
+                    </div>
+                    <div class="action-col">
+                        <div class="reward-tag"><span>🔮</span><span class="reward-val">10</span></div>
+                        <button class="btn">GO</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card-wrapper static-wrapper">
+            <div class="trial-card static-card">
+                <div class="ui-layer">
+                    <div class="icon-box">📜</div>
+                    <div class="info-col">
+                        <div class="header-box"><p class="title">Daily Missions</p><span class="progress-text">0 / 8</span></div>
+                        <p class="desc">Complete daily missions<br>for activity points.</p>
+                    </div>
+                    <div class="action-col">
+                        <div class="reward-tag"><span>🧪</span><span class="reward-val">5</span></div>
+                        <button class="btn">GO</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card-wrapper interactive-wrapper" id="targetWrapper">
+            <div class="trial-card interactive-card" id="targetCard">
+                <div class="progress-track"></div>
+                <div class="progress-fill" id="fill"></div>
+                <div class="ui-layer" id="cardUI">
+                    <div class="icon-box">⚔️</div>
+                    <div class="info-col">
+                        <div class="header-box">
+                            <p class="title">Defeat Bosses</p>
+                            <span class="progress-text" id="progText">2 / 5</span>
+                        </div>
+                        <p class="desc">Defeat Normal Stage<br>Bosses.</p>
+                    </div>
+                    <div class="action-col">
+                        <div class="reward-tag"><span>💎</span><span class="reward-val">50</span></div>
+                        <button class="btn" id="actionBtn">GO</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </template>
 
     <script>
         const slider = document.getElementById('slider');
         const resetBtn = document.getElementById('resetBtn');
+        const debugSwitch = document.getElementById('debugSwitch');
+        const styleLabel = document.getElementById('styleLabel');
+        const styleDesc = document.getElementById('styleDesc');
         const cardList = document.getElementById('cardList');
-        
-        // Save the pristine initial HTML state of the list
-        const initialListHTML = cardList.innerHTML;
-        const MAX = 5;
+        const templateA = document.getElementById('templateA');
+        const templateB = document.getElementById('templateB');
 
-        // State variables
+        const MAX = 5;
+        const STYLE_DESCRIPTIONS = {
+            A: 'A — Wide energy fill',
+            B: 'B — Micro-bar + multi-reward'
+        };
+
+        // State
+        let currentStyle = 'A';
         let isDone = false;
         let isClaimed = false;
         let targetWrapper, targetCard, fill, progText, actionBtn;
 
-        // Function to hook up JS logic to the DOM elements
+        // --- MOUNT: clear list, clone the active template in ---
+        function mountStyle(style) {
+            currentStyle = style;
+            document.body.setAttribute('data-style', style);
+            styleLabel.textContent = style;
+            styleDesc.textContent = STYLE_DESCRIPTIONS[style];
+
+            const tpl = style === 'A' ? templateA : templateB;
+            cardList.innerHTML = '';
+            cardList.appendChild(tpl.content.cloneNode(true));
+
+            // Reset state for fresh demo
+            isDone = false;
+            isClaimed = false;
+            slider.disabled = false;
+            slider.value = 2;
+
+            bindInteractiveElements();
+            slider.dispatchEvent(new Event('input'));
+        }
+
+        // --- Hook up JS logic to the current DOM elements ---
         function bindInteractiveElements() {
             targetWrapper = document.getElementById('targetWrapper');
             targetCard = document.getElementById('targetCard');
@@ -271,31 +455,28 @@
             progText = document.getElementById('progText');
             actionBtn = document.getElementById('actionBtn');
 
-            // --- THE SNAPPY VANISH & DROP EVENT ---
+            if (!actionBtn) return;
+
             actionBtn.addEventListener('click', () => {
                 if (!isDone || isClaimed) return;
                 isClaimed = true;
 
-                // 1. Instantly trigger the scale-down fade out
                 targetWrapper.classList.add('is-vanishing');
-
-                // 2. Trigger the layout shift (New card slides in, pushing rest down)
                 shiftLayoutAndSpawnNew();
-                
-                // 3. Clean up the DOM after the 0.3s CSS transition completes
+
                 setTimeout(() => {
-                    if(targetWrapper.parentNode) targetWrapper.remove();
+                    if (targetWrapper.parentNode) targetWrapper.remove();
                 }, 300);
             });
         }
 
         // --- SLIDER LOGIC ---
         slider.addEventListener('input', (e) => {
-            if (isClaimed) return; 
-            
+            if (isClaimed || !fill) return;
+
             const val = parseInt(e.target.value);
             fill.style.width = `${(val / MAX) * 100}%`;
-            
+
             if (!isDone) progText.innerText = `${val} / ${MAX}`;
 
             if (val === MAX && !isDone) {
@@ -303,8 +484,8 @@
                 targetWrapper.classList.remove('is-completed');
                 targetCard.classList.remove('is-completed');
                 actionBtn.classList.remove('is-active');
-                void targetWrapper.offsetWidth; 
-                
+                void targetWrapper.offsetWidth;
+
                 targetWrapper.classList.add('is-completed');
                 targetCard.classList.add('is-completed');
                 actionBtn.classList.add('is-active');
@@ -315,13 +496,15 @@
                 targetWrapper.classList.remove('is-completed');
                 targetCard.classList.remove('is-completed');
                 actionBtn.classList.remove('is-active');
-                actionBtn.innerText = 'GO'; 
+                actionBtn.innerText = 'GO';
                 progText.innerText = `${val} / ${MAX}`;
             }
         });
 
-        // --- SPAWN NEW CARD ---
+        // --- SPAWN NEW CARD (both styles now use the same boxed reward tag) ---
         function shiftLayoutAndSpawnNew() {
+            const rewardMarkup = `<div class="reward-tag"><span>💎</span><span class="reward-val">10</span></div>`;
+
             const newCardHTML = `
                 <div class="card-wrapper static-wrapper is-entering" id="newCard">
                     <div class="trial-card static-card">
@@ -332,14 +515,14 @@
                                 <p class="desc">A new challenge<br>has appeared.</p>
                             </div>
                             <div class="action-col">
-                                <div class="reward-tag"><span>💎</span><span class="reward-val">10</span></div>
+                                ${rewardMarkup}
                                 <button class="btn">GO</button>
                             </div>
                         </div>
                     </div>
                 </div>
             `;
-            
+
             cardList.insertAdjacentHTML('afterbegin', newCardHTML);
             const newCard = document.getElementById('newCard');
 
@@ -348,32 +531,23 @@
                     newCard.classList.remove('is-entering');
                 });
             });
-            
+
             slider.value = 0;
             slider.disabled = true;
         }
 
         // --- DEBUG RESET ---
         resetBtn.addEventListener('click', () => {
-            // Restore HTML
-            cardList.innerHTML = initialListHTML;
-            
-            // Reset state
-            isDone = false;
-            isClaimed = false;
-            slider.disabled = false;
-            slider.value = 2; // Matches our initial 40% fill
-            
-            // Re-bind click listeners to the fresh HTML
-            bindInteractiveElements();
-            
-            // Trigger a fake slider event to reset the visual width & text natively
-            slider.dispatchEvent(new Event('input'));
+            mountStyle(currentStyle);
         });
 
-        // Initial setup on page load
-        bindInteractiveElements();
+        // --- DEBUG STYLE SWITCH ---
+        debugSwitch.addEventListener('click', () => {
+            mountStyle(currentStyle === 'A' ? 'B' : 'A');
+        });
 
+        // --- Initial mount ---
+        mountStyle('A');
     </script>
 </body>
 </html>
